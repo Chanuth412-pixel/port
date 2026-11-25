@@ -54,8 +54,6 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 500; lette
 .site-nav a:last-child:hover, .site-nav a:last-child[aria-current] { background: var(--color-paper); }
 .site-nav a:last-child[aria-current]::after { inset-inline: 1.05rem; }
 .menu-toggle { display: none; width: 44px; height: 44px; align-items: center; justify-content: center; }
-.site-motion-control { flex: none; min-width: 44px; min-height: 44px; padding-inline: .5rem; border: 1px solid var(--color-rule); border-radius: 4px; font-size: .875rem; font-weight: 625; }
-.site-motion-control:hover { background: #fff6; }
 .scroll-progress { position: absolute; inset: auto 0 -1px; height: 2px; background: #63785c; transform: scaleX(0); transform-origin: left; pointer-events: none; }
 .skip-link { position: absolute; inset: .5rem auto auto .75rem; z-index: 2; padding: .65rem .9rem; transform: translateY(-150%); border-radius: 4px; background: var(--color-ink); color: white; }
 .skip-link:focus { transform: translateY(0); }
@@ -98,6 +96,7 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 500; lette
   min-width: 0;
 }
 .character-media {
+  --frame-ratio: 1.7777777778;
   display: grid;
   grid-template: minmax(0, 1fr) auto minmax(0, 1.5fr) / minmax(0, 1fr);
   justify-items: center;
@@ -123,7 +122,10 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 500; lette
   /* Enlarge the frame at its native aspect ratio and trim side whitespace only. */
   width: min(var(--video-width-limit), calc(var(--character-height) * var(--frame-ratio)));
   max-width: var(--video-width-limit);
+  aspect-ratio: var(--frame-ratio, auto);
 }
+.character-video[data-active="false"] { visibility: hidden; }
+.character-poster { display: contents; }
 .hero-footer { grid-area: 2 / 1 / 3 / -1; display: flex; align-items: center; min-height: var(--hero-footer-height); border-top: 1px solid var(--color-rule); color: var(--color-muted); }
 .hero-footer a { display: inline-flex; align-items: center; gap: .55rem; min-height: 2.75rem; font-size: .875rem; font-weight: 610; }
 .hero-footer a:hover { color: var(--color-ink); }
@@ -337,6 +339,8 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 500; lette
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .character-media video { visibility: hidden; }
+  .character-poster img[data-active] { visibility: visible; width: auto; max-width: 100%; aspect-ratio: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
   .timeline > li::after { display: none; }
 }

@@ -2,12 +2,10 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const assetFiles = {
-  "entrance.mp4": ["character/entrance-optimized.mp4", "character/entrance.mp4"],
-  "entrance.webm": ["character/entrance.webm"],
-  "entrance-white.mp4": ["character/entrance-white.mp4"],
-  "entrance-transparent.webm": ["character/entrance-transparent.webm"],
-  "entrance-poster.webp": ["character/entrance-poster.webp"],
-  "entrance-corrected-poster.webp": ["character/entrance-corrected-poster.webp"],
+  "entrance-optimized.mp4": ["character/entrance-optimized.mp4"],
+  "idle-loop-optimized.mp4": ["character/idle-loop-optimized.mp4"],
+  "entrance-poster.jpg": ["character/entrance-poster.jpg"],
+  "idle-poster.jpg": ["character/idle-poster.jpg"],
   "character-still.webp": ["character/character-still.webp"],
   "character.png": ["character/character.png"],
   "portrait.webp": ["character/portrait.webp"],
@@ -16,72 +14,34 @@ const assetFiles = {
 } as const;
 
 type AssetName = keyof typeof assetFiles;
-type VideoType = "video/webm" | "video/mp4";
-type VideoBackdrop = "studio" | "transparent" | "white";
-type VideoSource = { src: string; type: VideoType; backdrop: VideoBackdrop };
-
-const entrancePlaybackRate = 1.25;
-
-const entranceAssets = [
-  { file: "entrance.webm", type: "video/webm", backdrop: "studio" },
-  { file: "entrance.mp4", type: "video/mp4", backdrop: "studio" },
-  { file: "entrance-transparent.webm", type: "video/webm", backdrop: "transparent" },
-  { file: "entrance-white.mp4", type: "video/mp4", backdrop: "white" },
-] as const satisfies readonly { file: AssetName; type: VideoType; backdrop: VideoBackdrop }[];
 
 export type CharacterMedia = {
   poster: string | null;
   still: string | null;
-  entrance: VideoSource[];
-  playbackRate: number;
+  entrance: string | null;
+  entranceSpeed: number;
+  idle: string | null;
+  idlePoster: string | null;
 };
-
-const assetTypes = {
-  mp4: "video/mp4",
-  webm: "video/webm",
-  webp: "image/webp",
-  png: "image/png",
-  jpg: "image/jpeg",
-  pdf: "application/pdf",
-} as const;
-
-function isAssetName(name: string): name is AssetName {
-  return Object.hasOwn(assetFiles, name);
-}
-
-export function getMediaFile(name: string) {
-  if (!isAssetName(name)) return null;
-  const path = assetFiles[name]
-    .map((file) => join(process.cwd(), file))
-    .find((file) => existsSync(file));
-  if (!path) return null;
-  const extension = name.split(".").at(-1) as keyof typeof assetTypes;
-  return { path, type: assetTypes[extension] };
-}
-
-export function getMediaAssetNames() {
-  return Object.keys(assetFiles).filter((name) => getMediaFile(name));
-}
 
 function mediaUrl(name: AssetName) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-  return getMediaFile(name) ? `${basePath}/media/${name}` : null;
+  const file = assetFiles[name].find((candidate) => existsSync(join(process.cwd(), "public", candidate)));
+  return file ? `${basePath}/${file}` : null;
 }
 
 export function getPortfolioMedia(): { character: CharacterMedia | null; portrait: string | null; resume: string | null } {
   const still = mediaUrl("character-still.webp") ?? mediaUrl("character.png");
-  const entrance = entranceAssets.flatMap(({ file, type, backdrop }) => {
-    const src = mediaUrl(file);
-    return src ? [{ src, type, backdrop }] : [];
-  });
-  const backdrop = entrance[0]?.backdrop ?? "studio";
-  const poster = mediaUrl(backdrop === "studio" ? "entrance-poster.webp" : "entrance-corrected-poster.webp");
+  const entrance = mediaUrl("entrance-optimized.mp4");
+  const poster = mediaUrl("entrance-poster.jpg");
   return {
-    character: entrance.length || still || poster ? {
+    character: entrance || still || poster ? {
       still,
       poster,
       entrance,
-      playbackRate: entrancePlaybackRate,
+      entranceSpeed: 1.25,
+      idle: mediaUrl("idle-loop-optimized.mp4"),
+      idlePoster: mediaUrl("idle-poster.jpg"),
     } : null,
     portrait: mediaUrl("portrait.webp") ?? mediaUrl("portrait.jpg"),
     resume: mediaUrl("resume.pdf"),

@@ -19,18 +19,18 @@ npm run typecheck
 
 The production build expects a `/port/` URL prefix. To preview it locally, copy the contents of `out/` into a `port/` subdirectory of a temporary preview directory. From that temporary parent directory, run `npx --yes serve . --listen 4173` and open `http://localhost:4173/port/`.
 
-Run Chrome DevTools Lighthouse in mobile mode. The portfolio targets at least 90 for performance and 95 for accessibility. Record the actual scores from the production export. Confirm keyboard navigation, the ID card, toolkit, project disclosures, diagram buttons, copied email, and résumé download. Check the smallest supported viewport for horizontal scrolling. On desktop and mobile, confirm that scrolling away and back leaves the entrance at its final frame. Check the static portrait with reduced motion enabled.
+Run Chrome DevTools Lighthouse in mobile mode. The portfolio targets at least 90 for performance and 95 for accessibility. Record the actual scores from the production export. Confirm keyboard navigation, the ID card, toolkit, project disclosures, diagram buttons, copied email, and résumé download. Check the smallest supported viewport for horizontal scrolling. On desktop and mobile, confirm that scrolling away and back keeps the character in the final pose or idle loop without replaying the entrance. Check the static portrait with reduced motion enabled.
 
 ## Project structure
 
 | Path | Purpose |
 | --- | --- |
-| `src/app/` | Page layout, metadata, site styles, and static media route |
+| `src/app/` | Page layout, metadata, and site styles |
 | `src/components/` | Hero playback, navigation, ID card, toolkit, work showcase, diagrams, and contact controls |
 | `src/content/portfolio.ts` | Typed biography, skills, projects, contribution snapshots, timeline, and contact links |
 | `src/content/media.ts` | Source media discovery and browser URL mapping |
-| `character/` | Supplied images and videos, plus optional web encodes |
-| `resume.pdf` | The original PDF offered by the résumé download link |
+| `public/character/` | Supplied images and videos, plus optional web encodes |
+| `public/resume.pdf` | The original PDF offered by the résumé download link |
 
 ## Update content
 
@@ -40,27 +40,26 @@ Pull request states are recorded as verified snapshots. Update `status` and `ver
 
 ## Character assets
 
-The project reads the supplied `character/entrance.mp4`, `character/character.png`, and `character/portrait.jpg` during the build. The `/media` route copies their responses into the static export. Optional encodes are discovered by filename during the next build.
+Next.js serves `public/character/` and `public/resume.pdf` as static files. The player requests `/character/entrance-optimized.mp4` and `/character/idle-loop-optimized.mp4` in development. The production build adds `/port` to both URLs.
 
-| Optional file in `character/` | Role |
+| File in `public/character/` | Role |
 | --- | --- |
-| `entrance-white.mp4` | Pure-white entrance fallback |
-| `entrance-transparent.webm` | Transparent entrance fallback with an alpha channel |
-| `entrance.webm` | Preferred entrance with the studio backdrop |
-| `entrance-optimized.mp4` | Replaces the original MP4 as the compatibility source |
-| `entrance-poster.webp` | First decoded frame of the delivered entrance clip, used as the native video poster |
-| `entrance-corrected-poster.webp` | Matching first frame for a corrected entrance, with a transparent or pure-white background |
+| `idle.mp4` | Original standing animation used to make the ping-pong loop |
+| `entrance.mp4`, `idle-loop.mp4` | Source footage and the eased ping-pong master |
+| `entrance-optimized.mp4`, `idle-loop-optimized.mp4` | Silent H.264 Main Profile, YUV420p, fast-start delivery copies |
+| `entrance-poster.jpg`, `idle-poster.jpg` | Matching stills for loading and autoplay fallback |
 | `character-still.webp` | Optional final-frame portrait for visitors who start with reduced motion |
 | `portrait.webp` | Smaller version of the developer ID photograph |
 
-The entrance uses one video element from its first frame through its final pose. The native poster is used when the matching first-frame file exists. Without it, the video surface starts white and shows the first frame once it has decoded. The original character image is reserved for the reduced-motion or missing-video fallback. A pause button appears during clips longer than five seconds.
+The entrance plays once at 1.25×. Idle preloading begins after the entrance starts and the page's load event has fired. The last entrance frame remains visible until the browser starts looping the idle at normal speed. Autoplay rejection displays the matching poster and retries the active clip on a trusted tap, click, or keypress. Both clips pause offscreen or in a hidden tab. Reduced motion shows a static portrait. The ping-pong master skips the abrupt first frame of `idle.mp4` and eases both reversals. When it changes, regenerate the delivery copy and review the handoff in browser playback.
 
-If FFmpeg is available, these optional commands generate assets from the supplied files. Compare the output to the original at desktop and mobile display sizes before replacing the source.
+If FFmpeg is available, these optional commands generate assets from the supplied files. Run them from `public/` so the paths resolve. Compare the output to the original at desktop and mobile display sizes before replacing the source.
 
 ```sh
-ffmpeg -i character/entrance.mp4 -an -vf "scale=-2:'min(trunc(ih/2)*2,960)':flags=lanczos" -c:v libvpx-vp9 -crf 29 -b:v 0 -row-mt 1 -pix_fmt yuv420p character/entrance.webm
-ffmpeg -i character/entrance.mp4 -an -vf "scale=-2:'min(trunc(ih/2)*2,960)':flags=lanczos" -c:v libx264 -crf 20 -preset slow -pix_fmt yuv420p -movflags +faststart character/entrance-optimized.mp4
-ffmpeg -i character/entrance.mp4 -frames:v 1 -c:v libwebp -quality 90 character/entrance-poster.webp
+ffmpeg -i character/entrance.mp4 -map 0:v:0 -an -c:v libx264 -preset slow -crf 19 -profile:v main -level:v 3.1 -pix_fmt yuv420p -movflags +faststart character/entrance-optimized.mp4
+ffmpeg -i character/idle-loop.mp4 -map 0:v:0 -an -c:v libx264 -preset slow -crf 19 -profile:v main -level:v 3.1 -pix_fmt yuv420p -movflags +faststart character/idle-loop-optimized.mp4
+ffmpeg -i character/entrance-optimized.mp4 -frames:v 1 -q:v 3 character/entrance-poster.jpg
+ffmpeg -i character/idle-loop-optimized.mp4 -frames:v 1 -q:v 3 character/idle-poster.jpg
 ffmpeg -sseof -0.15 -i character/entrance.mp4 -frames:v 1 -vf "scale=-2:'min(ih,960)':flags=lanczos" -c:v libwebp -quality 87 character/character-still.webp
 ffmpeg -i character/portrait.jpg -frames:v 1 -vf "scale=480:-2:flags=lanczos" -c:v libwebp -quality 88 character/portrait.webp
 ```
@@ -77,17 +76,13 @@ For FFmpeg, replace `WIDTH`, `HEIGHT`, `LEFT`, and `TOP` with measured pixel val
 ffmpeg -i character/entrance.mp4 -vf "crop=WIDTH:HEIGHT:LEFT:TOP" -an -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart character/entrance-optimized.mp4
 ```
 
-The hero uses a vertical gradient sampled from the studio backdrop. The frame edges feather into that gradient without color filters. For a transparent or pure-white fallback export, isolate the person with a tracked mask in a video editor. Refine the mask around the hair, clothing, fingers, and shoes. Keep the same canvas, subject scale and position, frame rate, and full crossed-arm pose as the entrance currently used on the site. Preserve the soft contact shadow.
-
-Export a separate `entrance-transparent.webm` with alpha, or composite the person and shadow over pure `#ffffff` and export `entrance-white.mp4`. Place the export in `character/` alongside the original. The studio WebM and MP4 sources take priority, followed by the transparent WebM and white MP4. The transparent format uses its own alpha channel for the edges. If a fallback format is the primary source, save its matching first frame as `entrance-corrected-poster.webp` to show it while the video loads.
-
-After cropping a clip that still uses the original backdrop, extract `entrance-poster.webp` from `entrance-optimized.mp4` using the first-frame command above with the adjusted input. If `entrance.webm` is present, regenerate it from the same cropped source. This keeps the poster and both original-background variants aligned.
+The hero uses a vertical gradient sampled from the studio backdrop. The frame edges feather into that gradient without color filters. Match the existing 1280 × 720 canvas, subject scale, frame rate, crossed-arm pose, and soft contact shadow when preparing a new delivery clip. Extract a fresh JPEG poster from each revised delivery copy so the still and video align.
 
 ## Deploy to GitHub Pages
 
 1. Include `package-lock.json` in the repository. If needed, run `npm install` locally to generate it. The workflow uses `npm ci` on Node.js 24.
 2. In the repository settings, open **Pages** and select **GitHub Actions** as the source under **Build and deployment**.
-3. Push the project files to `main`. The workflow builds and publishes the `out/` directory. Keep the source files in `character/` and `resume.pdf` in the repository so the build can export them.
+3. Push the project files to `main`. The workflow builds and publishes the `out/` directory, including `public/character/` and `public/resume.pdf`.
 4. Once the workflow succeeds, open the [portfolio on GitHub Pages](https://chanuth412-pixel.github.io/port/) and verify the entrance video, résumé download, and fonts.
 
 Next.js applies `/port` to production framework assets. The same base path prefixes the local media URLs. Development uses the root path.

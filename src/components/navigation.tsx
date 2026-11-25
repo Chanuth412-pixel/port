@@ -12,55 +12,6 @@ const links = [
   { id: "contact", label: "Contact" },
 ];
 
-function EntranceMotionControl() {
-  const [motion, setMotion] = useState<{ video: HTMLVideoElement; paused: boolean } | null>(null);
-
-  useEffect(() => {
-    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const videoId = "hero-entrance-video";
-    const events = ["playing", "pause", "ended", "error"];
-
-    function update() {
-      const video = document.getElementById(videoId);
-      if (!(video instanceof HTMLVideoElement) || preference.matches || video.ended || video.error ||
-          !(video.duration / video.playbackRate > 5) || (video.paused && video.currentTime === 0)) {
-        setMotion(null);
-        return;
-      }
-      setMotion({ video, paused: video.paused });
-    }
-
-    function onMediaEvent(event: Event) {
-      if (event.target instanceof HTMLVideoElement && event.target.id === videoId) update();
-    }
-
-    update();
-    for (const event of events) document.addEventListener(event, onMediaEvent, true);
-    preference.addEventListener("change", update);
-    return () => {
-      for (const event of events) document.removeEventListener(event, onMediaEvent, true);
-      preference.removeEventListener("change", update);
-    };
-  }, []);
-
-  if (!motion) return null;
-
-  return (
-    <button
-      className="site-motion-control"
-      type="button"
-      aria-label={`${motion.paused ? "Resume" : "Pause"} hero animation`}
-      onClick={() => {
-        if (motion.video.ended) return;
-        if (motion.video.paused) void motion.video.play().catch(() => undefined);
-        else motion.video.pause();
-      }}
-    >
-      {motion.paused ? "Resume" : "Pause"}
-    </button>
-  );
-}
-
 export function Navigation({ mark, name }: { mark: string; name: string | null }) {
   const [active, setActive] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -137,7 +88,6 @@ export function Navigation({ mark, name }: { mark: string; name: string | null }
           <span className="brand-mark" aria-hidden="true">{mark}</span>
           <span className="brand-name">{name ?? "Engineering Portfolio"}</span>
         </a>
-        <EntranceMotionControl />
         <button ref={toggle} type="button" className="menu-toggle" aria-expanded={menuOpen} aria-controls="site-navigation" onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X aria-hidden="true" size={22} /> : <Menu aria-hidden="true" size={22} />}
           <span className="sr-only">{menuOpen ? "Close navigation" : "Open navigation"}</span>
