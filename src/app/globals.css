@@ -96,36 +96,59 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 500; lette
   min-width: 0;
 }
 .character-media {
-  --frame-ratio: 1.7777777778;
+  /* The crop retains 480 of the original 1280 pixels and the full frame height. */
+  --character-frame-width: min(calc(var(--video-width-limit) * .375), calc(var(--character-height) * 2 / 3));
   display: grid;
   grid-template: minmax(0, 1fr) auto minmax(0, 1.5fr) / minmax(0, 1fr);
   justify-items: center;
   height: var(--character-height);
   overflow: clip;
 }
-.character-media:not([data-backdrop="transparent"]) {
-  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-}
 .character-frame {
   grid-area: 2 / 1;
-  display: block;
-  max-width: 100%;
-  max-height: var(--character-height);
-  object-fit: contain;
-  object-position: center;
-}
-.character-media:not([data-backdrop="transparent"]) .character-frame {
-  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent), linear-gradient(transparent, #000 5%, #000 97%, transparent);
+  position: relative;
+  width: var(--character-frame-width);
+  aspect-ratio: 2 / 3;
+  mix-blend-mode: multiply;
+  mask-image: linear-gradient(90deg, transparent, #000 17%, #000 83%, transparent), linear-gradient(transparent, #000 4%, #000 98.5%, transparent);
   mask-composite: intersect;
 }
-.character-video {
-  /* Enlarge the frame at its native aspect ratio and trim side whitespace only. */
-  width: min(var(--video-width-limit), calc(var(--character-height) * var(--frame-ratio)));
-  max-width: var(--video-width-limit);
-  aspect-ratio: var(--frame-ratio, auto);
+.character-frame :is(img, video) {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
-.character-video[data-active="false"] { visibility: hidden; }
-.character-poster { display: contents; }
+.character-sound {
+  grid-area: 2 / 1;
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  justify-self: end;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin-inline-end: max(.5rem, calc((100% - var(--character-frame-width)) / 2 - 2.75rem));
+  margin-block-end: .5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #141414;
+  color: #fff;
+}
+.character-sound svg { fill: currentColor; }
+.character-sound[data-blocked="true"]::after {
+  position: absolute;
+  inset: -3px;
+  border: 1px solid currentColor;
+  border-radius: inherit;
+  color: #141414;
+  content: "";
+  pointer-events: none;
+  animation: character-sound-pulse 2.4s ease-out infinite;
+}
+@keyframes character-sound-pulse { from { opacity: .32; transform: scale(.96); } 75%, to { opacity: 0; transform: scale(1.16); } }
 .hero-footer { grid-area: 2 / 1 / 3 / -1; display: flex; align-items: center; min-height: var(--hero-footer-height); border-top: 1px solid var(--color-rule); color: var(--color-muted); }
 .hero-footer a { display: inline-flex; align-items: center; gap: .55rem; min-height: 2.75rem; font-size: .875rem; font-weight: 610; }
 .hero-footer a:hover { color: var(--color-ink); }
@@ -314,6 +337,7 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 500; lette
   .hero-actions .button-text { padding-inline: .45rem; }
   .hero-visual { grid-area: 2 / 1; padding-block: .25rem .6rem; }
   .character { --character-height: clamp(15.5rem, 55svh, 34rem); --video-width-limit: 135%; }
+  .character-sound { align-self: start; margin-block: .5rem 0; }
   .hero-footer { grid-area: 3 / 1; }
   .about-layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 2rem 1.3rem; }
   .about-intro { grid-column: 1 / -1; }
@@ -339,8 +363,7 @@ em { font-family: var(--font-serif); font-style: italic; font-weight: 500; lette
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .character-media video { visibility: hidden; }
-  .character-poster img[data-active] { visibility: visible; width: auto; max-width: 100%; aspect-ratio: auto; }
+  .character-media video, .character-sound { display: none; }
   *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
   .timeline > li::after { display: none; }
 }

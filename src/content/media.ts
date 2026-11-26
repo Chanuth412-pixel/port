@@ -2,12 +2,9 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const assetFiles = {
-  "entrance-optimized.mp4": ["character/entrance-optimized.mp4"],
-  "idle-loop-optimized.mp4": ["character/idle-loop-optimized.mp4"],
-  "entrance-poster.jpg": ["character/entrance-poster.jpg"],
-  "idle-poster.jpg": ["character/idle-poster.jpg"],
-  "character-still.webp": ["character/character-still.webp"],
-  "character.png": ["character/character.png"],
+  "talking-optimized.mp4": ["character/talking-optimized.mp4"],
+  "talking.webm": ["character/talking.webm"],
+  "talking-poster.webp": ["character/talking-poster.webp"],
   "portrait.webp": ["character/portrait.webp"],
   "portrait.jpg": ["character/portrait.jpg"],
   "resume.pdf": ["resume.pdf"],
@@ -16,12 +13,9 @@ const assetFiles = {
 type AssetName = keyof typeof assetFiles;
 
 export type CharacterMedia = {
+  mp4: string | null;
+  webm: string | null;
   poster: string | null;
-  still: string | null;
-  entrance: string | null;
-  entranceSpeed: number;
-  idle: string | null;
-  idlePoster: string | null;
 };
 
 function mediaUrl(name: AssetName) {
@@ -31,18 +25,11 @@ function mediaUrl(name: AssetName) {
 }
 
 export function getPortfolioMedia(): { character: CharacterMedia | null; portrait: string | null; resume: string | null } {
-  const still = mediaUrl("character-still.webp") ?? mediaUrl("character.png");
-  const entrance = mediaUrl("entrance-optimized.mp4");
-  const poster = mediaUrl("entrance-poster.jpg");
+  const mp4 = mediaUrl("talking-optimized.mp4");
+  const webm = mediaUrl("talking.webm");
+  const poster = mediaUrl("talking-poster.webp");
   return {
-    character: entrance || still || poster ? {
-      still,
-      poster,
-      entrance,
-      entranceSpeed: 1.25,
-      idle: mediaUrl("idle-loop-optimized.mp4"),
-      idlePoster: mediaUrl("idle-poster.jpg"),
-    } : null,
+    character: mp4 || webm || poster ? { mp4, webm, poster } : null,
     portrait: mediaUrl("portrait.webp") ?? mediaUrl("portrait.jpg"),
     resume: mediaUrl("resume.pdf"),
   };
